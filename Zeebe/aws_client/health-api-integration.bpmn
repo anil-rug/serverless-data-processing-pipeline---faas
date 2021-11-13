@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1nuoek6" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Zeebe Modeler" exporterVersion="0.11.0">
+  <bpmn:process id="health-workflow" isExecutable="true">
+    <bpmn:startEvent id="Event_0ujo6ty" name="Health Integration Initiated">
+      <bpmn:outgoing>Flow_1mk3238</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="Event_0quvwfm" name="Garmin Webhook Processed">
+      <bpmn:incoming>Flow_1pjajtz</bpmn:incoming>
+      <bpmn:incoming>Flow_06z5q8q</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1mk3238" sourceRef="Event_0ujo6ty" targetRef="Activity_1fahokm" />
+    <bpmn:serviceTask id="Activity_1fahokm" name="Handle Garmin Webhook">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="lambda" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="functionName" value="sam-health-integration-HandleGarminWebhookFunction-19T0SP6DGXBHR" />
+          <zeebe:header key="body" value="{&#34;body&#34;:  &#34;{{{variablesJsonEscaped}}}&#34;  }" />
+          <zeebe:header key="resultName" value="handleGarminResult" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1mk3238</bpmn:incoming>
+      <bpmn:outgoing>Flow_1027qta</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="Event_13kr6z6" name="Garmin Webhook Failed">
+      <bpmn:incoming>Flow_04d9mxv</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="Gateway_0hdymol" name="Check Webhook Type">
+      <bpmn:incoming>Flow_1027qta</bpmn:incoming>
+      <bpmn:outgoing>Flow_04d9mxv</bpmn:outgoing>
+      <bpmn:outgoing>Flow_11d3gc6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0ysna8c</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_04d9mxv" name="type=unsupported" sourceRef="Gateway_0hdymol" targetRef="Event_13kr6z6">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= handleGarminResult.type = "unsupported"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_11d3gc6" name="type=dailies or activities" sourceRef="Gateway_0hdymol" targetRef="Activity_1szz052">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= handleGarminResult.type = "dailies" or handleGarminResult.type = "activities"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1027qta" name="Next" sourceRef="Activity_1fahokm" targetRef="Gateway_0hdymol" />
+    <bpmn:serviceTask id="Activity_0i792cz" name="Upload to Baseplatform">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="lambda" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="functionName" value="sam-health-integration-UploadBaseplatformFunction-MYE5T5U8VYY6" />
+          <zeebe:header key="body" value="{&#34;body&#34;:  &#34;{{{variablesJsonEscaped}}}&#34;  }" />
+          <zeebe:header key="resultName" value="purposeResult" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0h4f75k</bpmn:incoming>
+      <bpmn:outgoing>Flow_1pjajtz</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1pjajtz" name="Next" sourceRef="Activity_0i792cz" targetRef="Event_0quvwfm" />
+    <bpmn:exclusiveGateway id="Gateway_0gyude1" name="Check Purpose Type">
+      <bpmn:incoming>Flow_0ykflnb</bpmn:incoming>
+      <bpmn:incoming>Flow_0zat1ld</bpmn:incoming>
+      <bpmn:incoming>Flow_1uxgumj</bpmn:incoming>
+      <bpmn:outgoing>Flow_0h4f75k</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1p3rkyz</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0h4f75k" name="sendDataToBackend = true" sourceRef="Gateway_0gyude1" targetRef="Activity_0i792cz">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= handleGarminResult.sendDataToBackend=true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Activity_1szz052" name="Save Garmin Webhook Landing Zone">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="lambda" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="functionName" value="sam-health-integration-GarminWebhookLandingZoneFun-18FPRJV0H2JYE" />
+          <zeebe:header key="body" value="{&#34;body&#34;:  &#34;{{{variablesJsonEscaped}}}&#34;  }" />
+          <zeebe:header key="resultName" value="landingZoneResult" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_11d3gc6</bpmn:incoming>
+      <bpmn:incoming>Flow_0au9y1p</bpmn:incoming>
+      <bpmn:outgoing>Flow_116qz48</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_116qz48" name="Next" sourceRef="Activity_1szz052" targetRef="Gateway_18tstut" />
+    <bpmn:exclusiveGateway id="Gateway_18tstut" name="Check Activity Type">
+      <bpmn:incoming>Flow_116qz48</bpmn:incoming>
+      <bpmn:outgoing>Flow_03bng1g</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0hbqt45</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1uxgumj</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_03bng1g" name="type=dailies" sourceRef="Gateway_18tstut" targetRef="Activity_0upojg7">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= handleGarminResult.type = "dailies"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Activity_0upojg7" name="Process Garmin Dailies">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="lambda" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="functionName" value="sam-health-integration-ProcessGarminDailiesArrayFu-1A10IZXDWOT0Q" />
+          <zeebe:header key="body" value="{&#34;body&#34;:  &#34;{{{variablesJsonEscaped}}}&#34;  }" />
+          <zeebe:header key="resultName" value="transformResult" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_03bng1g</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ykflnb</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0ykflnb" name="Next" sourceRef="Activity_0upojg7" targetRef="Gateway_0gyude1" />
+    <bpmn:serviceTask id="Activity_1rcnkvy" name="Fetch Garmin Fit File">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="lambda" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="functionName" value="sam-health-integration-FetchGarminFitFileFunction-127W8UIMEKRYU" />
+          <zeebe:header key="body" value="{&#34;body&#34;:  &#34;{{{variablesJsonEscaped}}}&#34;  }" />
+          <zeebe:header key="resultName" value="fetchGarminFitResult" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0ysna8c</bpmn:incoming>
+      <bpmn:outgoing>Flow_0au9y1p</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0ysna8c" name="type=activityFiles" sourceRef="Gateway_0hdymol" targetRef="Activity_1rcnkvy">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= handleGarminResult.type = "activityFiles"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0hbqt45" name="type=activities" sourceRef="Gateway_18tstut" targetRef="Activity_1j6dehe">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= handleGarminResult.type = "activities"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0zat1ld" name="Next" sourceRef="Activity_1j6dehe" targetRef="Gateway_0gyude1" />
+    <bpmn:sequenceFlow id="Flow_1uxgumj" name="type=activityFiles" sourceRef="Gateway_18tstut" targetRef="Gateway_0gyude1">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= handleGarminResult.type = "activityFiles"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Activity_1j6dehe" name="Process Garmin Activities">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="lambda" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="functionName" value="sam-health-integration-ProcessGarminActivitiesFunc-16424R5XYOYUG" />
+          <zeebe:header key="body" value="{&#34;body&#34;:  &#34;{{{variablesJsonEscaped}}}&#34;  }" />
+          <zeebe:header key="resultName" value="transformResult" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0hbqt45</bpmn:incoming>
+      <bpmn:outgoing>Flow_0zat1ld</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0au9y1p" name="Next" sourceRef="Activity_1rcnkvy" targetRef="Activity_1szz052" />
+    <bpmn:serviceTask id="Activity_1l2be6b" name="Save Garmin Processed Data">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="lambda" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="functionName" value="sam-health-integration-SaveGarminWebhookProcessedF-UKYBJEO0JCSB" />
+          <zeebe:header key="body" value="{&#34;body&#34;:  &#34;{{{variablesJsonEscaped}}}&#34;  }" />
+          <zeebe:header key="resultName" value="purposeResult" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1p3rkyz</bpmn:incoming>
+      <bpmn:outgoing>Flow_06z5q8q</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1p3rkyz" name="sendDataToBackend = false" sourceRef="Gateway_0gyude1" targetRef="Activity_1l2be6b">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= handleGarminResult.sendDataToBackend=false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_06z5q8q" name="Next" sourceRef="Activity_1l2be6b" targetRef="Event_0quvwfm" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="health-workflow">
+      <bpmndi:BPMNEdge id="Flow_06z5q8q_di" bpmnElement="Flow_06z5q8q">
+        <di:waypoint x="1290" y="120" />
+        <di:waypoint x="1360" y="120" />
+        <di:waypoint x="1360" y="222" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1313" y="102" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1p3rkyz_di" bpmnElement="Flow_1p3rkyz">
+        <di:waypoint x="1095" y="220" />
+        <di:waypoint x="1120" y="120" />
+        <di:waypoint x="1190" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1085" y="86" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0au9y1p_di" bpmnElement="Flow_0au9y1p">
+        <di:waypoint x="630" y="120" />
+        <di:waypoint x="650" y="120" />
+        <di:waypoint x="650" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="648" y="143" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1uxgumj_di" bpmnElement="Flow_1uxgumj">
+        <di:waypoint x="790" y="265" />
+        <di:waypoint x="790" y="350" />
+        <di:waypoint x="1090" y="350" />
+        <di:waypoint x="1090" y="265" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="899" y="332" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0zat1ld_di" bpmnElement="Flow_0zat1ld">
+        <di:waypoint x="990" y="120" />
+        <di:waypoint x="1090" y="120" />
+        <di:waypoint x="1090" y="215" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1028" y="102" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0hbqt45_di" bpmnElement="Flow_0hbqt45">
+        <di:waypoint x="790" y="215" />
+        <di:waypoint x="790" y="120" />
+        <di:waypoint x="890" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="771" y="165" width="69" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ysna8c_di" bpmnElement="Flow_0ysna8c">
+        <di:waypoint x="500" y="215" />
+        <di:waypoint x="500" y="120" />
+        <di:waypoint x="530" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="408" y="165" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ykflnb_di" bpmnElement="Flow_0ykflnb">
+        <di:waypoint x="990" y="240" />
+        <di:waypoint x="1065" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1016" y="222" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_03bng1g_di" bpmnElement="Flow_03bng1g">
+        <di:waypoint x="815" y="240" />
+        <di:waypoint x="890" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="824" y="222" width="58" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_116qz48_di" bpmnElement="Flow_116qz48">
+        <di:waypoint x="700" y="240" />
+        <di:waypoint x="765" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="721" y="222" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0h4f75k_di" bpmnElement="Flow_0h4f75k">
+        <di:waypoint x="1115" y="240" />
+        <di:waypoint x="1190" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1095" y="262" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1pjajtz_di" bpmnElement="Flow_1pjajtz">
+        <di:waypoint x="1290" y="240" />
+        <di:waypoint x="1342" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1304" y="222" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1027qta_di" bpmnElement="Flow_1027qta">
+        <di:waypoint x="390" y="240" />
+        <di:waypoint x="475" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="421" y="222" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11d3gc6_di" bpmnElement="Flow_11d3gc6">
+        <di:waypoint x="525" y="240" />
+        <di:waypoint x="600" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="523" y="246" width="72" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_04d9mxv_di" bpmnElement="Flow_04d9mxv">
+        <di:waypoint x="500" y="265" />
+        <di:waypoint x="500" y="382" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="506" y="313" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1mk3238_di" bpmnElement="Flow_1mk3238">
+        <di:waypoint x="218" y="240" />
+        <di:waypoint x="290" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="242" y="112" width="4" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Event_0ujo6ty_di" bpmnElement="Event_0ujo6ty">
+        <dc:Bounds x="182" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="159" y="258" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0quvwfm_di" bpmnElement="Event_0quvwfm">
+        <dc:Bounds x="1342" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1319" y="262" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1fahokm_di" bpmnElement="Activity_1fahokm">
+        <dc:Bounds x="290" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_13kr6z6_di" bpmnElement="Event_13kr6z6">
+        <dc:Bounds x="482" y="382" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="459" y="422" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0hdymol_di" bpmnElement="Gateway_0hdymol" isMarkerVisible="true">
+        <dc:Bounds x="475" y="215" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="409" y="258" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ec4uw7_di" bpmnElement="Activity_0i792cz">
+        <dc:Bounds x="1190" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0gyude1_di" bpmnElement="Gateway_0gyude1" isMarkerVisible="true">
+        <dc:Bounds x="1065" y="215" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1002" y="258" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0pkkyub_di" bpmnElement="Activity_1szz052">
+        <dc:Bounds x="600" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_18tstut_di" bpmnElement="Gateway_18tstut" isMarkerVisible="true">
+        <dc:Bounds x="765" y="215" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="715" y="258.5" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0upojg7_di" bpmnElement="Activity_0upojg7">
+        <dc:Bounds x="890" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0flbizl_di" bpmnElement="Activity_1rcnkvy">
+        <dc:Bounds x="530" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_109lw4y_di" bpmnElement="Activity_1j6dehe">
+        <dc:Bounds x="890" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_13g7qxf_di" bpmnElement="Activity_1l2be6b">
+        <dc:Bounds x="1190" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
